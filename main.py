@@ -118,12 +118,12 @@ def image_open(msg, runText):
             downloaded_file = bot.download_file(file_info.file_path) #сохраняем фото с сервера телеграмм
             fp = io.BytesIO(downloaded_file) # декодируем изображение из байт
             img = Image.open(fp) # откроем изображение с библиотекой Pillow
-            font = ImageFont.truetype('arial.ttf', 32) #параметры шрифта
-            text = str(runText) #добавляемый шрифт
+            font = ImageFont.load_default() # стандартный шрифт
+            text = str(runText)[-10:].encode('cp1251')#.encode('UTF-8') #добавляемый шрифт
             draw_text = ImageDraw.Draw(img) # добавим текст на изображение
             draw_text.text((10,10), text, font=font, fill=('#58F9F6')) # параметры размещения текста на изображении
-            img.save('test.jpg')
-            bot.send_photo(msg.chat.id, photo=open('test.jpg', 'rb'))
+            #img.save('test.jpg')
+            bot.send_photo(msg.chat.id, img)
             bot.send_message(msg.chat.id, "Ваше фото готово!")
             send_keyboard(msg, 'Могу помочь чем-то еще?')
         except Exception as e:
