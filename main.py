@@ -5,7 +5,7 @@ import sqlite3
 import io #для работы с битовыми данными в памяти
 import docx # для работы с Word
 import datetime # для работы с временем
-import SQLfunctions # подключаем sqlite функции
+import db_connection as db # подключаем db функции
 from PIL import Image, ImageDraw, ImageFont # библиотека по работе с изображениями, добавление текста, шрифты
 
 conn = sqlite3.connect('running.db')# подключаем sqlite
@@ -28,7 +28,7 @@ except:
 
 
 # подключим токен нашего бота
-bot = telebot.TeleBot(SQLfunctions.token)
+bot = telebot.TeleBot(db.token)
 
 # напишем, что делать нашему боту при команде старт
 @bot.message_handler(commands=['start'])
@@ -79,7 +79,7 @@ def add_run(msg):
                         flag_marathon = 1
                     elif curDist == 21:
                         flag_half_marathon = 1
-                SQLfunctions.insertRunIntoBD(msg, msg.text)
+                db.insertRunIntoBD(msg, msg.text)
                 runText = msg.text # сохраним текущую пробежку в переменную, потом передадим ее в функцию memoryPhoto
                 #-----
                 bot.send_message(msg.chat.id, 'Вау, это надо зафиксировать :)')
@@ -192,7 +192,7 @@ def import_run(msg):
                             flag_marathon = 1
                         elif curDist == 21:
                             flag_half_marathon = 1
-                    SQLfunctions.insertRunIntoBD(msg, record_run[i])
+                    db.insertRunIntoBD(msg, record_run[i])
                 else:
                     bot.send_message(msg.chat.id,
                                      "Ваша дистанция - отрицательное число. Извините, я не могу добавить следующую пробежку в список:")
@@ -219,7 +219,7 @@ def get_runs_string(runsList):
 
 # теперь отправляем пользователю список пробежек
 def showAllRuns(msg):
-    runsList = get_runs_string(SQLfunctions.selectRunsfromBD(msg))
+    runsList = get_runs_string(db.selectRunsfromBD(msg))
     bot.send_message(msg.chat.id, runsList)
     send_keyboard(msg, "Чем еще могу помочь?")
 
@@ -228,7 +228,7 @@ def showAllRuns(msg):
 # для этого сначала пользователь должен выбрать пробежку, которую он хочет удалить
 def chooseToDelete(msg):
     markup = types.ReplyKeyboardMarkup()
-    runsList = SQLfunctions.selectRunsfromBD(msg)
+    runsList = db.selectRunsfromBD(msg)
     if len(runsList) != 0:
         for val in runsList:
             markup.add(types.KeyboardButton(val[0]))
@@ -251,7 +251,7 @@ def confirmDelete(msg):
 # теперь напишем саму функцию deleteRun
 def deleteRun(msg1, msg):
     if msg1.text == 'Да':
-        SQLfunctions.deleteRunFromBD(msg)
+        db.deleteRunFromBD(msg)
         bot.send_message(msg.chat.id, 'Пробежка удалена')
         send_keyboard(msg, "Чем еще могу помочь?")
     else:
@@ -268,8 +268,8 @@ def get_reward_string(rewardList):
 
 # теперь переходим к самой функции
 def reward(msg, flag_marathon, flag_half_marathon):
-    runsList = SQLfunctions.selectRunsfromBD(msg)
-    rewardList = get_reward_string(SQLfunctions.selectRewardsfromBD(msg))
+    runsList = db.selectRunsfromBD(msg)
+    rewardList = get_reward_string(db.selectRewardsfromBD(msg))
 
     summdistance = 0  # переменная, в которую будем записывать суммарное расстояние, которое уже пробежал пользователь
     for val in runsList:
@@ -298,31 +298,31 @@ def reward(msg, flag_marathon, flag_half_marathon):
     if (flag_marathon == 1) and ("Пробежать марафон!" not in rewardList):
         bot.send_message(msg.chat.id, 'Да вы марафонец!')
         bot.send_sticker(msg.chat.id, 'CAACAgIAAxkBAAEDG4JhbVH5kd2eiIFKEUWJ8g6jxBehlgACtQADwZxgDNJKKKDyOCUEIQQ')
-        SQLfunctions.insertRewardIntoBD(msg, "Пробежать марафон!")
+        db.insertRewardIntoBD(msg, "Пробежать марафон!")
 
     if (flag_half_marathon == 1) and ("Пробежать полумарафон!" not in rewardList):
         bot.send_message(msg.chat.id, 'Ого, вы пробежали полумарафон!')
         bot.send_sticker(msg.chat.id, 'CAACAgIAAxkBAAEDG4RhbVUKixP0SEOvFQQ8nIb2QDvkgAACtwADwZxgDPilirtWD6kDIQQ')
-        SQLfunctions.insertRewardIntoBD(msg, "Пробежать полумарафон!")
+        db.insertRewardIntoBD(msg, "Пробежать полумарафон!")
 
     if (summdistance > 0 and "Начало положено!" not in rewardList):
         bot.send_message(msg.chat.id, 'Ваша первая пробежка, круто!')
         bot.send_sticker(msg.chat.id, 'CAACAgIAAxkBAAEDEl1hZzjsZ1hhdMvFXy5uI4Twg_THfwACxAADMNSdEcjFvLwK6xVKIQQ')
-        SQLfunctions.insertRewardIntoBD(msg, "Начало положено!")
+        db.insertRewardIntoBD(msg, "Начало положено!")
 
     if (summdistance >= 100 and "Преодолеть отметку в 100 км!" not in rewardList):
         bot.send_message(msg.chat.id, f'Вау, вы преодолели отметку в 100 км! Так держать!')
         bot.send_sticker(msg.chat.id, 'CAACAgIAAxkBAAEDFKBhaFqay25yDk89nZ53k2qPmwLMOAACywADMNSdEXWK5xlwcXbPIQQ')
-        SQLfunctions.insertRewardIntoBD(msg, "Преодолеть отметку в 100 км!")
+        db.insertRewardIntoBD(msg, "Преодолеть отметку в 100 км!")
 
     if (summdistance >= 200 and "Преодолеть отметку в 200 км!" not in rewardList):
         bot.send_message(msg.chat.id, 'Вау, вы преодолели отметку в 200 км! Очень круто!')
         bot.send_sticker(msg.chat.id, 'CAACAgIAAxkBAAEDG5xhbWhoD5PCuVHwuXIfomPf1-7XrgACzAADMNSdEbg0CDIOCTHMIQQ')
-        SQLfunctions.insertRewardIntoBD(msg, "Преодолеть отметку в 200 км!")
+        db.insertRewardIntoBD(msg, "Преодолеть отметку в 200 км!")
 
 # функция, которая выводит список всех полученных наград
 def showRewards(msg):
-    rewardList = get_reward_string(SQLfunctions.selectRewardsfromBD(msg))
+    rewardList = get_reward_string(db.selectRewardsfromBD(msg))
     bot.send_message(msg.chat.id, rewardList)
     send_keyboard(msg, "Чем еще могу помочь?")
 
@@ -340,7 +340,7 @@ def confirmDeleteAllRunningData(msg):
 # сама функция удаления пробежек
 def deleteAllRunningData(msg):
     if (msg.text == 'Да'):
-        SQLfunctions.deleteAllRunsFromBD(msg)
+        db.deleteAllRunsFromBD(msg)
         send_keyboard(msg, "Все пробежки удалены. Чем еще могу помочь?")
     else:
         send_keyboard(msg, "Ок, ничего не удаляем. Чем еще могу помочь?")
@@ -359,7 +359,7 @@ def confirmDeleteAllRewardData(msg):
 # сама функция удаления наград
 def deleteAllRewardData(msg):
     if (msg.text == 'Да'):
-        SQLfunctions.deleteAllRewardsFromBD(msg)
+        db.deleteAllRewardsFromBD(msg)
         send_keyboard(msg, "Все награды удалены. Чем еще могу помочь?")
     else:
         send_keyboard(msg, "Ок, ничего не удаляем. Чем еще могу помочь?")
@@ -367,7 +367,7 @@ def deleteAllRewardData(msg):
 
 # функция создания сводки
 def activity_while_month(msg):
-    runsList = SQLfunctions.selectRunsfromBD(msg)
+    runsList = db.selectRunsfromBD(msg)
     distance = 0
     time = 0
     places = []
@@ -399,7 +399,7 @@ def activity_while_month(msg):
 # програмка на вход получает количество месяцев, а дальше смотрит на разницу по датам и подбирает все пробежки
 def runs_in_period(msg):
     answer = ''
-    runsList = SQLfunctions.selectRunsfromBD(msg)
+    runsList = db.selectRunsfromBD(msg)
     if len(runsList) != 0:
         spisok = []
         for i in runsList:
