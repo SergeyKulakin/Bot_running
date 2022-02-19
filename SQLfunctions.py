@@ -11,7 +11,6 @@ def insertRunIntoBD(msg, text):
         cursor.execute('INSERT INTO runningData (user_id, run) VALUES (?, ?)', (msg.from_user.id, text))
         con.commit()
 
-# добавить награду в БД
 def insertRewardIntoBD(msg, reward):
     with sqlite3.connect('running.db') as con:
         cursor = con.cursor()
