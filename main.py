@@ -112,7 +112,7 @@ def memoryPhoto(msg, runText):
 # реализуем функцию "Обработки изображений"
 @bot.message_handler(content_types=['photo'])
 def image_open(msg, runText):
-    if (msg.text != 'Назад'):
+    if msg.text != 'Назад':
         try:
             file_info = bot.get_file(msg.photo[len(msg.photo) - 1].file_id)
             downloaded_file = bot.download_file(file_info.file_path) #сохраняем фото с сервера телеграмм
