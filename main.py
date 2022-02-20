@@ -8,7 +8,7 @@ import datetime # для работы с временем
 import db_connection as db # подключаем db функции
 from PIL import Image, ImageDraw, ImageFont # библиотека по работе с изображениями, добавление текста, шрифты
 
-conn = sqlite3.connect('running.db')# подключаем sqlite
+conn = sqlite3.connect('running.db') # подключаем sqlite
 
 # курсор для работы с таблицами
 cursor = conn.cursor()
@@ -116,14 +116,10 @@ def image_open(msg, runText):
         try:
             file_info = bot.get_file(msg.photo[len(msg.photo) - 1].file_id)
             downloaded_file = bot.download_file(file_info.file_path) #сохраняем фото с сервера телеграмм
-            fp = io.BytesIO(downloaded_file) # декодируем изображение из байт
-            img = Image.open(fp) # откроем изображение с библиотекой Pillow
-            font = ImageFont.load_default() # стандартный шрифт
-            text = str(runText)[-10:].encode('cp1251')#.encode('UTF-8') #добавляемый шрифт
-            draw_text = ImageDraw.Draw(img) # добавим текст на изображение
-            draw_text.text((10,10), text, font=font, fill=('#58F9F6')) # параметры размещения текста на изображении
-            #img.save('test.jpg')
+
+            img = AddTexttoFoto(runText, downloaded_file)
             bot.send_photo(msg.chat.id, img)
+            img.close()  # закрываем файл
             bot.send_message(msg.chat.id, "Ваше фото готово!")
             send_keyboard(msg, 'Могу помочь чем-то еще?')
         except Exception as e:
@@ -132,6 +128,16 @@ def image_open(msg, runText):
     else:
         bot.send_message(msg, "Хорошо, отменяем. Чем еще могу помочь?")
 
+# вспомогательная функция для image_open
+def AddTexttoFoto(runText, downloaded_file):
+    fp = io.BytesIO(downloaded_file)  # декодируем изображение из байт
+    img = Image.open(fp)  # откроем изображение с библиотекой Pillow
+    font = ImageFont.load_default()  # стандартный шрифт
+    text = str(runText)[-10:].encode('cp1251')  # .encode('UTF-8') #добавляемый шрифт
+    draw_text = ImageDraw.Draw(img)  # добавим текст на изображение
+    draw_text.text((10, 10), text, font=font, fill=('#58F9F6'))  # параметры размещения текста на изображении
+
+    return img
 
 """Функция "Импорт из файла"
     напишем функцию "Импорт записей" для загрузки записей из файлов txt и docx.
