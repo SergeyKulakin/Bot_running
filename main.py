@@ -44,20 +44,15 @@ bot_greeting =  str('Привет, я HSE_Running Bot! Твой персонал
 # напишем, что делать нашему боту при команде старт
 @bot.message_handler(commands=['start'])
 def send_keyboard(message, text=bot_greeting):
-    keyboard = types.ReplyKeyboardMarkup(row_width=2)
-    itembtn1 = types.KeyboardButton('Добавить пробежку')
-    itembtn2 = types.KeyboardButton('Удалить пробежку')
-    itembtn3 = types.KeyboardButton('Показать все пробежки')
-    itembtn4 = types.KeyboardButton('Показать пробежки за период')
-    itembtn5 = types.KeyboardButton('Показать активность за месяц')
-    itembtn6 = types.KeyboardButton('Импорт записей')  # загрузить записи из файла
-    itembtn7 = types.KeyboardButton('Награды')
-    itembtn8 = types.KeyboardButton('Пока все!')
-    itembtn9 = types.KeyboardButton('Очистить runningData')
-    itembtn10 = types.KeyboardButton('Очистить rewardData')
+    keyboard = types.ReplyKeyboardMarkup(row_width=1)
+    lst_of_btns = ['Добавить пробежку', 'Удалить пробежку', 'Показать все пробежки', 'Показать пробежки за период',
+                   'Показать активность за месяц', 'Импорт записей', 'Награды', 'Пока все!', 'Очистить runningData',
+                   'Очистить rewardData']
 
-    # keyboard.add(itembtn1, itembtn2, itembtn3, itembtn4, itembtn5, itembtn6, itembtn7, itembtn8, itembtn9, itembtn10)
-    keyboard.add(itembtn1, itembtn2, itembtn6, itembtn3, itembtn4, itembtn5, itembtn7, itembtn8, itembtn9, itembtn10)
+    for btn_name in lst_of_btns:
+        new_button = types.KeyboardButton(btn_name)
+        keyboard.add(new_button)
+
     # пришлем это все сообщением и запишем выбранный вариант
     msg = bot.send_message(message.from_user.id, text=text, reply_markup=keyboard)
 
