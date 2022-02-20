@@ -68,35 +68,55 @@ def send_keyboard(message, text="Привет, я HSE_Running Bot! Твой пе
 
 # функция "Добавить пробежку"
 def add_run(msg):
-    flag_marathon = 0      # переменная, которая нужна для отслеживания, пробежал ли пользователь марафон
-    flag_half_marathon = 0 # переменная, которая нужна для отслеживания, пробежал ли пользователь полумарафон
+
     if (msg.text != 'Назад'):
-        try:
-            cur_dist = float(str(msg.text).split(',')[0].split()[0].lstrip('(').lstrip("'"))
-            if cur_dist >= 0:
-                if ',' in str(msg.text).rstrip(')').rstrip(','):
-                    if cur_dist == 42:
-                        flag_marathon = 1
-                    elif cur_dist == 21:
-                        flag_half_marathon = 1
-                db.insert_run_into_db(msg, msg.text)
-                run_text = msg.text # сохраним текущую пробежку в переменную, потом передадим ее в функцию memoryPhoto
-                #-----
-                bot.send_message(msg.chat.id, 'Вау, это надо зафиксировать :)')
-                reward(msg, flag_marathon, flag_half_marathon) # вызываем функцию учета наград
-                markup = types.ReplyKeyboardMarkup()
-                markup.add(types.KeyboardButton('Да'))
-                markup.add(types.KeyboardButton('Нет'))
-                msg = bot.send_message(msg.from_user.id, text='Сделаем памятную фотку?', reply_markup=markup)
-                bot.register_next_step_handler(msg, memory_photo, run_text)  # переходим к функции memory photo
-            else:
-                bot.send_message(msg.chat.id, "Ваша дистанция - отрицательное число. Извините, я не могу добавить эту пробежку в список.")
-                send_keyboard(msg, "Чем еще могу помочь?")
-        except:
-            bot.send_message(msg.chat.id, 'Вы ввели пробежку в неправильном формате! Извините, я не могу её добавить в список')
+        # выделим повторяющийся фрагмент в отдельную функцию
+        flag_else, flag_except, flag_marathon, flag_half_marathon = add_run_repit_part(msg, msg.text)
+        if flag_except and flag_else:
+            bot.send_message(msg.chat.id, 'Вау, это надо зафиксировать :)')
+            reward(msg, flag_marathon, flag_half_marathon)  # вызываем функцию учета наград
+            #-----
+            run_text = msg.text # сохраним текущую пробежку в переменную, потом передадим ее в функцию memoryPhoto
+            markup = types.ReplyKeyboardMarkup()
+            markup.add(types.KeyboardButton('Да'))
+            markup.add(types.KeyboardButton('Нет'))
+            msg = bot.send_message(msg.from_user.id, text='Сделаем памятную фотку?', reply_markup=markup)
+            bot.register_next_step_handler(msg, memory_photo, run_text)  # переходим к функции memory photo
+
+        elif flag_else == False:
+            bot.send_message(msg.chat.id,
+                             "Ваша дистанция - отрицательное число. Извините, я не могу добавить эту пробежку в список.")
             send_keyboard(msg, "Чем еще могу помочь?")
+        elif flag_except == False:
+            bot.send_message(msg.chat.id,
+                             'Вы ввели пробежку в неправильном формате! Извините, я не могу её добавить в список')
+            send_keyboard(msg, "Чем еще могу помочь?")
+
     else:
         send_keyboard(msg, "Хорошо, отменяем. Чем еще могу помочь?")
+
+# вспомогательная функция для add_run
+def add_run_repit_part(msg, text):
+    flag_marathon = 0      # переменная, которая нужна для отслеживания, пробежал ли пользователь марафон
+    flag_half_marathon = 0 # переменная, которая нужна для отслеживания, пробежал ли пользователь полумарафон
+    flag_except = True
+    flag_else = True
+    try:
+        cur_dist = float(str(text).split(',')[0].split()[0].lstrip('(').lstrip("'"))
+        if cur_dist >= 0:
+            if ',' in str(text).rstrip(')').rstrip(','):
+                if cur_dist >= 42:
+                    flag_marathon = 1
+                elif 21 <= cur_dist < 42:
+                    flag_half_marathon = 1
+            db.insert_run_into_db(msg, text)
+
+        else:
+            flag_else = False
+    except:
+        flag_except = False
+
+    return flag_else, flag_except, flag_marathon, flag_half_marathon
 
 # функция для выбора сделать фото или нет
 def memory_photo(msg, run_text):
@@ -157,8 +177,6 @@ def get_document_string_txt(document_list):
 # функция записи пробежек из файла
 @bot.message_handler(content_types=['document'])
 def import_run(msg):
-    flag_marathon = 0
-    flag_half_marathon = 0
     text = []
     if (msg.text != 'Назад'):
         bot.send_message(msg.chat.id, "Вы загрузили документ")
@@ -185,38 +203,43 @@ def import_run(msg):
 
             else: #если расширение другое, бот отправит стикер sorry
                 bot.send_sticker(msg.chat.id, 'CAACAgIAAxkBAAIKJGFrNvGpUtjbltZpXQNpetpU1FC6AAI_AAOtZbwUhPhHiSSyKyAhBA')
+                return send_keyboard(msg, "Не могу прочесть. Чем еще могу помочь?")
+
         except Exception as e:
-            bot.reply_to(msg, e)
+            return send_keyboard(msg, "Не могу прочесть. Чем еще могу помочь?")
 
-        record_run = [line.rstrip() for line in text] #запишем построчно данные из файла в БД
-        for i in range(len(record_run)):
-            try:
-                cur_dist = float(str(record_run[i]).split(',')[0].split()[0].lstrip('(').lstrip("'"))
-                if cur_dist >= 0:
-                    if ',' in str(record_run[i]):
-                        if cur_dist == 42:
-                            flag_marathon = 1
-                        elif cur_dist == 21:
-                            flag_half_marathon = 1
-                    db.insert_run_into_db(msg, record_run[i])
-                else:
-                    bot.send_message(msg.chat.id,
-                                     "Ваша дистанция - отрицательное число. Извините, я не могу добавить следующую пробежку в список:")
-                    bot.send_message(msg.chat.id, record_run[i])
-            except:
-                bot.send_message(msg.chat.id,
-                                 'Вы ввели пробежку в неправильном формате! Извините, я не могу добавить следующую пробежку в список:')
-                bot.send_message(msg.chat.id, record_run[i])
+        import_add_to_db(msg, text)
 
-        reward(msg, flag_marathon, flag_half_marathon)
-        bot.send_message(msg.chat.id, 'Я всё зафиксировал :)')
-        send_keyboard(msg, 'Могу помочь чем-то еще?')
     else:
         send_keyboard(msg, "Хорошо, отменяем. Чем еще могу помочь?")
 
+# вспомогательная функция import_run для зхаписи из файла в БД
+def import_add_to_db(msg, text):
+    record_run = [line.rstrip() for line in text] #запишем построчно данные из файла в БД
+    flag_else, flag_except, flag_marathon, flag_half_marathon = True, True, 0, 0
+    for rec in record_run:
+        flag_else, flag_except, flag_marathon, flag_half_marathon = add_run_repit_part(msg, rec)
+        reward(msg, flag_marathon, flag_half_marathon)
 
-# реализуем теперь функцию "Показать все пробежки"
-# для этого сначала напишем функцию get_runs_string, которая делает красивые строки и отправляет их пользователю
+    if flag_else or flag_except:
+        bot.send_message(msg.chat.id, 'Я всё зафиксировал :)')
+        send_keyboard(msg, 'Могу помочь чем-то еще?')
+
+    elif flag_else == False:
+        bot.send_message(msg.chat.id,
+                         "Дистанция в записях- отрицательное число. Извините, я не могу добавить эту пробежку в список.")
+        send_keyboard(msg, "Чем еще могу помочь?")
+
+    elif flag_except == False:
+        bot.send_message(msg.chat.id,
+                         'Есть пробежки в неправильном формате! Извините,'
+                         'их я не могу добавить в список')
+        send_keyboard(msg, "Чем еще могу помочь?")
+
+
+'''реализуем теперь функцию "Показать все пробежки"
+    для этого сначала напишем функцию get_runs_string,
+    которая делает красивые строки и отправляет их пользователю'''
 def get_runs_string(runs_list):
     runs_list_str = []
     for val in list(enumerate(runs_list)):
@@ -285,7 +308,7 @@ def reward(msg, flag_marathon, flag_half_marathon):
         else:
             bot.send_message(msg.chat.id, "================\n"
                                               "УВЕДОМЛЕНИЕ\n"
-                                              "* Вы вашем списке пробежек есть пробежка в нерекомендуемом формате!\n"
+                                              "* В вашем списке пробежек есть пробежка в нерекомендуемом формате!\n"
                                               "* Пробежка в нерекомендуемом формате не влияет на работу бота, однако данные из данной"
                                               " пробежки никак не будут учтены\n"
                                               "* Рекомендуется удалить данную пробежку:\n")
