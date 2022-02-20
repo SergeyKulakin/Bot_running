@@ -133,9 +133,9 @@ def image_open(msg, runText):
         bot.send_message(msg, "Хорошо, отменяем. Чем еще могу помочь?")
 
 
-# функция "Импорт из файла"
-# теперь напишем функцию "Импорт записей" для загрузки записей из файлов txt и docx
-# Это функция красивых строк для текстовых файлов(docx)
+"""Функция "Импорт из файла"
+    напишем функцию "Импорт записей" для загрузки записей из файлов txt и docx.
+    Это функция красивых строк для текстовых файлов(docx)"""
 def get_document_string(documentList):
     documentList_str1 = [line.rstrip() for line in documentList]
     documentList_str2 = [str(val) for val in
