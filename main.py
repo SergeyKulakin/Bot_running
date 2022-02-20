@@ -72,15 +72,15 @@ def add_run(msg):
     flag_half_marathon = 0 # переменная, которая нужна для отслеживания, пробежал ли пользователь полумарафон
     if (msg.text != 'Назад'):
         try:
-            curDist = float(str(msg.text).split(',')[0].split()[0].lstrip('(').lstrip("'"))
-            if curDist >= 0:
+            cur_dist = float(str(msg.text).split(',')[0].split()[0].lstrip('(').lstrip("'"))
+            if cur_dist >= 0:
                 if ',' in str(msg.text).rstrip(')').rstrip(','):
-                    if curDist == 42:
+                    if cur_dist == 42:
                         flag_marathon = 1
-                    elif curDist == 21:
+                    elif cur_dist == 21:
                         flag_half_marathon = 1
-                db.insertRunIntoBD(msg, msg.text)
-                runText = msg.text # сохраним текущую пробежку в переменную, потом передадим ее в функцию memoryPhoto
+                db.insert_run_into_db(msg, msg.text)
+                run_text = msg.text # сохраним текущую пробежку в переменную, потом передадим ее в функцию memoryPhoto
                 #-----
                 bot.send_message(msg.chat.id, 'Вау, это надо зафиксировать :)')
                 reward(msg, flag_marathon, flag_half_marathon) # вызываем функцию учета наград
@@ -88,7 +88,7 @@ def add_run(msg):
                 markup.add(types.KeyboardButton('Да'))
                 markup.add(types.KeyboardButton('Нет'))
                 msg = bot.send_message(msg.from_user.id, text='Сделаем памятную фотку?', reply_markup=markup)
-                bot.register_next_step_handler(msg, memoryPhoto, runText)  # переходим к функции memory photo
+                bot.register_next_step_handler(msg, memory_photo, run_text)  # переходим к функции memory photo
             else:
                 bot.send_message(msg.chat.id, "Ваша дистанция - отрицательное число. Извините, я не могу добавить эту пробежку в список.")
                 send_keyboard(msg, "Чем еще могу помочь?")
@@ -99,11 +99,11 @@ def add_run(msg):
         send_keyboard(msg, "Хорошо, отменяем. Чем еще могу помочь?")
 
 # функция для выбора сделать фото или нет
-def memoryPhoto(msg, runText):
+def memory_photo(msg, run_text):
     # bot.send_message(msg.chat.id, 'Попали в функцию memoryPhoto')
     if (msg.text == 'Да'):
         bot.send_message(msg.chat.id, 'Хорошо, скинь фотку... ')
-        bot.register_next_step_handler(msg, image_open, runText)
+        bot.register_next_step_handler(msg, image_open, run_text)
         #send_keyboard(msg, 'Могу помочь чем-то еще?')
     else:
         bot.send_message(msg.chat.id, 'Нет так нет')
@@ -111,13 +111,13 @@ def memoryPhoto(msg, runText):
 
 # реализуем функцию "Обработки изображений"
 @bot.message_handler(content_types=['photo'])
-def image_open(msg, runText):
+def image_open(msg, run_text):
     if msg.text != 'Назад':
         try:
             file_info = bot.get_file(msg.photo[len(msg.photo) - 1].file_id)
             downloaded_file = bot.download_file(file_info.file_path) #сохраняем фото с сервера телеграмм
 
-            img = AddTexttoFoto(runText, downloaded_file)
+            img = add_text_to_foto(run_text, downloaded_file)
             bot.send_photo(msg.chat.id, img)
             img.close()  # закрываем файл
             bot.send_message(msg.chat.id, "Ваше фото готово!")
@@ -129,11 +129,11 @@ def image_open(msg, runText):
         bot.send_message(msg, "Хорошо, отменяем. Чем еще могу помочь?")
 
 # вспомогательная функция для image_open
-def AddTexttoFoto(runText, downloaded_file):
+def add_text_to_foto(run_text, downloaded_file):
     fp = io.BytesIO(downloaded_file)  # декодируем изображение из байт
     img = Image.open(fp)  # откроем изображение с библиотекой Pillow
     font = ImageFont.load_default()  # стандартный шрифт
-    text = str(runText)[-10:].encode('cp1251')  # .encode('UTF-8') #добавляемый шрифт
+    text = str(run_text)[-10:].encode('cp1251')  # .encode('UTF-8') #добавляемый шрифт
     draw_text = ImageDraw.Draw(img)  # добавим текст на изображение
     draw_text.text((10, 10), text, font=font, fill=('#58F9F6'))  # параметры размещения текста на изображении
 
@@ -143,16 +143,16 @@ def AddTexttoFoto(runText, downloaded_file):
     напишем функцию "Импорт записей" для загрузки записей из файлов txt и docx.
     Это функция красивых строк для текстовых файлов(docx)"""
 def get_document_string(documentList):
-    documentList_str1 = [line.rstrip() for line in documentList]
-    documentList_str2 = [str(val) for val in
-                    documentList_str1]
-    return '\n'.join(documentList_str2)
+    document_list_str1 = [line.rstrip() for line in documentList]
+    document_list_str2 = [str(val) for val in
+                          document_list_str1]
+    return '\n'.join(document_list_str2)
 
 # Это функция красивых строк для текстовых файлов(txt)
-def get_document_string_txt(documentList):
-    documentList_str = [str(val) for val in
-                    documentList]
-    return '\n'.join(documentList_str)
+def get_document_string_txt(document_list):
+    document_list_str = [str(val) for val in
+                         document_list]
+    return '\n'.join(document_list_str)
 
 # функция записи пробежек из файла
 @bot.message_handler(content_types=['document'])
@@ -191,14 +191,14 @@ def import_run(msg):
         record_run = [line.rstrip() for line in text] #запишем построчно данные из файла в БД
         for i in range(len(record_run)):
             try:
-                curDist = float(str(record_run[i]).split(',')[0].split()[0].lstrip('(').lstrip("'"))
-                if curDist >= 0:
+                cur_dist = float(str(record_run[i]).split(',')[0].split()[0].lstrip('(').lstrip("'"))
+                if cur_dist >= 0:
                     if ',' in str(record_run[i]):
-                        if curDist == 42:
+                        if cur_dist == 42:
                             flag_marathon = 1
-                        elif curDist == 21:
+                        elif cur_dist == 21:
                             flag_half_marathon = 1
-                    db.insertRunIntoBD(msg, record_run[i])
+                    db.insert_run_into_db(msg, record_run[i])
                 else:
                     bot.send_message(msg.chat.id,
                                      "Ваша дистанция - отрицательное число. Извините, я не могу добавить следующую пробежку в список:")
@@ -217,47 +217,47 @@ def import_run(msg):
 
 # реализуем теперь функцию "Показать все пробежки"
 # для этого сначала напишем функцию get_runs_string, которая делает красивые строки и отправляет их пользователю
-def get_runs_string(runsList):
-    runsList_str = []
-    for val in list(enumerate(runsList)):
-        runsList_str.append(str(val[0] + 1) + ') ' + val[1][0] + '\n')
-    return ''.join(runsList_str)
+def get_runs_string(runs_list):
+    runs_list_str = []
+    for val in list(enumerate(runs_list)):
+        runs_list_str.append(str(val[0] + 1) + ') ' + val[1][0] + '\n')
+    return ''.join(runs_list_str)
 
 # теперь отправляем пользователю список пробежек
-def showAllRuns(msg):
-    runsList = get_runs_string(db.selectRunsfromBD(msg))
-    bot.send_message(msg.chat.id, runsList)
+def show_all_runs(msg):
+    runs_list = get_runs_string(db.select_runs_from_db(msg))
+    bot.send_message(msg.chat.id, runs_list)
     send_keyboard(msg, "Чем еще могу помочь?")
 
 
 # реализуем функцию "Удалить пробежку"
 # для этого сначала пользователь должен выбрать пробежку, которую он хочет удалить
-def chooseToDelete(msg):
+def choose_to_delete(msg):
     markup = types.ReplyKeyboardMarkup()
-    runsList = db.selectRunsfromBD(msg)
-    if len(runsList) != 0:
-        for val in runsList:
+    runs_list = db.select_runs_from_db(msg)
+    if len(runs_list) != 0:
+        for val in runs_list:
             markup.add(types.KeyboardButton(val[0]))
         msg = bot.send_message(msg.from_user.id, text="Выбери пробежку для удаления", reply_markup=markup)
-        bot.register_next_step_handler(msg, confirmDelete)
+        bot.register_next_step_handler(msg, confirm_delete)
     else:
         bot.send_message(msg.from_user.id,'Здесь пусто. Нечего удалить.')
         send_keyboard(msg, "Чем еще могу помочь?")
 
 # спрашиваем, точно ли пользователь хочет удалить пробежку
-def confirmDelete(msg):
+def confirm_delete(msg):
     bot.send_message(msg.from_user.id, 'Вы собираетесь удалить следующую пробежку:')
     bot.send_message(msg.from_user.id, msg.text)
     markup = types.ReplyKeyboardMarkup()
     markup.add(types.KeyboardButton('Да'))
     markup.add(types.KeyboardButton('Нет'))
     msg1 = bot.send_message(msg.from_user.id, text='Удаляем?', reply_markup=markup)
-    bot.register_next_step_handler(msg1, deleteRun, msg)
+    bot.register_next_step_handler(msg1, delete_run, msg)
 
 # теперь напишем саму функцию deleteRun
-def deleteRun(msg1, msg):
+def delete_run(msg1, msg):
     if msg1.text == 'Да':
-        db.deleteRunFromBD(msg)
+        db.delete_run_from_db(msg)
         bot.send_message(msg.chat.id, 'Пробежка удалена')
         send_keyboard(msg, "Чем еще могу помочь?")
     else:
@@ -266,19 +266,19 @@ def deleteRun(msg1, msg):
 
 # перейдем к функции Получения, просмотра и учета наград
 # сначала добавим функцию для красивого вывода строк с наградой
-def get_reward_string(rewardList):
-    rewList_str = []
-    for val in list(rewardList):
-        rewList_str.append(str('"' + val[0] + '"' + '\n'))
-    return ''.join(rewList_str)
+def get_reward_string(reward_list):
+    rew_list_str = []
+    for val in list(reward_list):
+        rew_list_str.append(str('"' + val[0] + '"' + '\n'))
+    return ''.join(rew_list_str)
 
 # теперь переходим к самой функции
 def reward(msg, flag_marathon, flag_half_marathon):
-    runsList = db.selectRunsfromBD(msg)
-    rewardList = get_reward_string(db.selectRewardsfromBD(msg))
+    runs_list = db.select_runs_from_db(msg)
+    reward_list = get_reward_string(db.select_rewards_from_db(msg))
 
     summdistance = 0  # переменная, в которую будем записывать суммарное расстояние, которое уже пробежал пользователь
-    for val in runsList:
+    for val in runs_list:
         # try:
         if ',' in str(val).rstrip(')').rstrip(','):
             summdistance += float(str(val).split(',')[0].split()[0].lstrip('(').lstrip("'"))
@@ -301,52 +301,52 @@ def reward(msg, flag_marathon, flag_half_marathon):
         #     bot.send_message(msg.chat.id, val)
         #     bot.send_message(msg.chat.id, "================")
 
-    if (flag_marathon == 1) and ("Пробежать марафон!" not in rewardList):
+    if (flag_marathon == 1) and ("Пробежать марафон!" not in reward_list):
         bot.send_message(msg.chat.id, 'Да вы марафонец!')
         bot.send_sticker(msg.chat.id, 'CAACAgIAAxkBAAEDG4JhbVH5kd2eiIFKEUWJ8g6jxBehlgACtQADwZxgDNJKKKDyOCUEIQQ')
-        db.insertRewardIntoBD(msg, "Пробежать марафон!")
+        db.insert_reward_into_db(msg, "Пробежать марафон!")
 
-    if (flag_half_marathon == 1) and ("Пробежать полумарафон!" not in rewardList):
+    if (flag_half_marathon == 1) and ("Пробежать полумарафон!" not in reward_list):
         bot.send_message(msg.chat.id, 'Ого, вы пробежали полумарафон!')
         bot.send_sticker(msg.chat.id, 'CAACAgIAAxkBAAEDG4RhbVUKixP0SEOvFQQ8nIb2QDvkgAACtwADwZxgDPilirtWD6kDIQQ')
-        db.insertRewardIntoBD(msg, "Пробежать полумарафон!")
+        db.insert_reward_into_db(msg, "Пробежать полумарафон!")
 
-    if (summdistance > 0 and "Начало положено!" not in rewardList):
+    if (summdistance > 0 and "Начало положено!" not in reward_list):
         bot.send_message(msg.chat.id, 'Ваша первая пробежка, круто!')
         bot.send_sticker(msg.chat.id, 'CAACAgIAAxkBAAEDEl1hZzjsZ1hhdMvFXy5uI4Twg_THfwACxAADMNSdEcjFvLwK6xVKIQQ')
-        db.insertRewardIntoBD(msg, "Начало положено!")
+        db.insert_reward_into_db(msg, "Начало положено!")
 
-    if (summdistance >= 100 and "Преодолеть отметку в 100 км!" not in rewardList):
+    if (summdistance >= 100 and "Преодолеть отметку в 100 км!" not in reward_list):
         bot.send_message(msg.chat.id, f'Вау, вы преодолели отметку в 100 км! Так держать!')
         bot.send_sticker(msg.chat.id, 'CAACAgIAAxkBAAEDFKBhaFqay25yDk89nZ53k2qPmwLMOAACywADMNSdEXWK5xlwcXbPIQQ')
-        db.insertRewardIntoBD(msg, "Преодолеть отметку в 100 км!")
+        db.insert_reward_into_db(msg, "Преодолеть отметку в 100 км!")
 
-    if (summdistance >= 200 and "Преодолеть отметку в 200 км!" not in rewardList):
+    if (summdistance >= 200 and "Преодолеть отметку в 200 км!" not in reward_list):
         bot.send_message(msg.chat.id, 'Вау, вы преодолели отметку в 200 км! Очень круто!')
         bot.send_sticker(msg.chat.id, 'CAACAgIAAxkBAAEDG5xhbWhoD5PCuVHwuXIfomPf1-7XrgACzAADMNSdEbg0CDIOCTHMIQQ')
-        db.insertRewardIntoBD(msg, "Преодолеть отметку в 200 км!")
+        db.insert_reward_into_db(msg, "Преодолеть отметку в 200 км!")
 
 # функция, которая выводит список всех полученных наград
-def showRewards(msg):
-    rewardList = get_reward_string(db.selectRewardsfromBD(msg))
-    bot.send_message(msg.chat.id, rewardList)
+def show_rewards(msg):
+    reward_list = get_reward_string(db.select_rewards_from_db(msg))
+    bot.send_message(msg.chat.id, reward_list)
     send_keyboard(msg, "Чем еще могу помочь?")
 
 
 # напишем теперь функцию, которая удаляет ВСЕ пробежки из БД
 # для этого сначала добавим функцию, которая будет спрашивать, уверен ли пользователь,
 # что он хочет удалить все пробежки
-def confirmDeleteAllRunningData(msg):
+def confirm_delete_all_running_data(msg):
     markup = types.ReplyKeyboardMarkup()
     markup.add(types.KeyboardButton('Да'))
     markup.add(types.KeyboardButton('Нет'))
     msg = bot.send_message(msg.from_user.id, text='Вы уверены, что хотите удалить ВСЕ пробежки?', reply_markup=markup)
-    bot.register_next_step_handler(msg, deleteAllRunningData)
+    bot.register_next_step_handler(msg, delete_all_running_data)
 
 # сама функция удаления пробежек
-def deleteAllRunningData(msg):
+def delete_all_running_data(msg):
     if (msg.text == 'Да'):
-        db.deleteAllRunsFromBD(msg)
+        db.delete_all_runs_from_db(msg)
         send_keyboard(msg, "Все пробежки удалены. Чем еще могу помочь?")
     else:
         send_keyboard(msg, "Ок, ничего не удаляем. Чем еще могу помочь?")
@@ -355,17 +355,17 @@ def deleteAllRunningData(msg):
 # напишем теперь функцию, которая удаляет ВСЕ награды из БД
 # для этого сначала добавим функцию, которая будет спрашивать, уверен ли пользователь,
 # что он хочет удалить все награды
-def confirmDeleteAllRewardData(msg):
+def confirm_delete_all_reward_data(msg):
     markup = types.ReplyKeyboardMarkup()
     markup.add(types.KeyboardButton('Да'))
     markup.add(types.KeyboardButton('Нет'))
     msg = bot.send_message(msg.from_user.id, text='Вы уверены, что хотите удалить ВСЕ достижения?', reply_markup=markup)
-    bot.register_next_step_handler(msg, deleteAllRewardData)
+    bot.register_next_step_handler(msg, delete_all_reward_data)
 
 # сама функция удаления наград
-def deleteAllRewardData(msg):
+def delete_all_reward_data(msg):
     if (msg.text == 'Да'):
-        db.deleteAllRewardsFromBD(msg)
+        db.delete_all_rewards_from_db(msg)
         send_keyboard(msg, "Все награды удалены. Чем еще могу помочь?")
     else:
         send_keyboard(msg, "Ок, ничего не удаляем. Чем еще могу помочь?")
@@ -373,11 +373,11 @@ def deleteAllRewardData(msg):
 
 # функция создания сводки
 def activity_while_month(msg):
-    runsList = db.selectRunsfromBD(msg)
+    runs_list = db.select_runs_from_db(msg)
     distance = 0
     time = 0
     places = []
-    for i in runsList:
+    for i in runs_list:
         for j in i:
             try:
                 info = str(j).split(',')
@@ -405,10 +405,10 @@ def activity_while_month(msg):
 # програмка на вход получает количество месяцев, а дальше смотрит на разницу по датам и подбирает все пробежки
 def runs_in_period(msg):
     answer = ''
-    runsList = db.selectRunsfromBD(msg)
-    if len(runsList) != 0:
+    runs_list = db.select_runs_from_db(msg)
+    if len(runs_list) != 0:
         spisok = []
-        for i in runsList:
+        for i in runs_list:
             for j in i:
                 try:
                     info = str(j).split(',')
@@ -462,19 +462,19 @@ def callback_worker(call):
 
     elif call.text == "Показать все пробежки":
         try:
-            showAllRuns(call)
+            show_all_runs(call)
         except:
             bot.send_message(call.chat.id, 'Здесь пусто. Может начнем бежать прямо сейчас? ;)')
             send_keyboard(call, "Чем еще могу помочь?")
 
 
     elif call.text == "Удалить пробежку":
-        chooseToDelete(call)
+        choose_to_delete(call)
 
     elif call.text == "Награды":
         bot.send_message(call.chat.id, 'Давайте посмотрим на ваши награды!...')
         try:
-            showRewards(call)
+            show_rewards(call)
         except:
             bot.send_message(call.chat.id, 'У вас пока нет наград :(')
             bot.send_sticker(call.chat.id, 'CAACAgIAAxkBAAEDFKRhaGPl0VAFJ14oaW1t7nnHVPEw8wACdQADwDZPE5B0WbJxOIvjIQQ')
@@ -494,10 +494,10 @@ def callback_worker(call):
         bot.send_message(call.chat.id, 'Хорошего дня! Когда захотите продолжить нажмите на команду\n /start')
 
     elif call.text == 'Очистить runningData':
-        confirmDeleteAllRunningData(call)
+        confirm_delete_all_running_data(call)
 
     elif call.text == 'Очистить rewardData':
-        confirmDeleteAllRewardData(call)
+        confirm_delete_all_reward_data(call)
 
     else:
         bot.send_message(call.chat.id, 'Извините, я вас не понимаю :(')
