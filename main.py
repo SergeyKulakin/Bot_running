@@ -70,9 +70,18 @@ def add_run(msg):
     flag_half_marathon = 0 # переменная, которая нужна для отслеживания, пробежал ли пользователь полумарафон
     if (msg.text != 'Назад'):
         try:
-            curDist = float(str(msg.text).split(',')[0].split()[0].lstrip('(').lstrip("'"))
+            # пробежка поступает в формате строки: "12 км, 44 минуты, Москва, 12.11.2020"
+            # необходимо достать оттуда числовое значение дистанции пробежки
+            # сначала достанем дистанцию в формате "12 км"
+            run_dist_in_str_format = str(msg.text).split(',')[0]
+
+            # теперь надо достать оттуда число
+            digit_in_str_format = run_dist_in_str_format.split()[0]
+
+            # переведем дистанцию в числовой формат
+            curDist = float(digit_in_str_format)
             if curDist >= 0:
-                if ',' in str(msg.text).rstrip(')').rstrip(','):
+                if ',' in str(msg.text).rstrip(','):
                     if curDist == 42:
                         flag_marathon = 1
                     elif curDist == 21:
