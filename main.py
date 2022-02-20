@@ -64,6 +64,12 @@ def send_keyboard(message, text=bot_greeting):
 #--------------------------------
 # Теперь напишем функции для нашего бота
 
+def check_marathon_flag(dist):
+    return dist==42
+
+def check_half_marathon_flag(dist):
+    return dist==21
+
 # функция "Добавить пробежку"
 def add_run(msg):
     flag_marathon = 0      # переменная, которая нужна для отслеживания, пробежал ли пользователь марафон
@@ -81,11 +87,10 @@ def add_run(msg):
             # переведем дистанцию в числовой формат
             curDist = float(digit_in_str_format)
             if curDist >= 0:
+                # проверим, пробежал ли марафон или полумарафон
                 if ',' in str(msg.text).rstrip(','):
-                    if curDist == 42:
-                        flag_marathon = 1
-                    elif curDist == 21:
-                        flag_half_marathon = 1
+                    flag_marathon = check_marathon_flag(curDist)
+                    flag_half_marathon = check_half_marathon_flag(curDist)
                 SQLfunctions.insertRunIntoBD(msg, msg.text)
                 runText = msg.text # сохраним текущую пробежку в переменную, потом передадим ее в функцию memoryPhoto
                 #-----
