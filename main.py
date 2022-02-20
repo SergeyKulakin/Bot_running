@@ -8,24 +8,25 @@ import datetime # для работы с временем
 import SQLfunctions # подключаем sqlite функции
 from PIL import Image, ImageDraw, ImageFont # библиотека по работе с изображениями, добавление текста, шрифты
 
-conn = sqlite3.connect('running.db')# подключаем sqlite
 
-# курсор для работы с таблицами
-cursor = conn.cursor()
+def db_initialize():
+    conn = sqlite3.connect('running.db') # подключаем sqlite
 
-try:
-    # sql запрос на создание таблицы
-    query = "CREATE TABLE \"runningData\" (\"ID\" INTEGER UNIQUE, \"user_id\" INTEGER, \"run\" TEXT, PRIMARY KEY (\"ID\"))"
-    cursor.execute(query)
-except:
-    pass
+    # курсор для работы с таблицами
+    cursor = conn.cursor()
 
-try:
-    query1 = "CREATE TABLE \"rewardData\" (\"ID\" INTEGER UNIQUE, \"user_id\" INTEGER, \"reward\" TEXT, PRIMARY KEY (\"ID\"))"
-    cursor.execute(query1)
-except:
-    pass
+    running_data_query = "CREATE TABLE IF NOT EXISTS \"runningData\" (\"ID\" INTEGER UNIQUE, \"user_id\" INTEGER, \"run\" TEXT, PRIMARY KEY (\"ID\"))"
+    reward_data_query  = "CREATE TABLE IF NOT EXISTS \"rewardData\" (\"ID\" INTEGER UNIQUE, \"user_id\" INTEGER, \"reward\" TEXT, PRIMARY KEY (\"ID\"))"
 
+    # sql запрос на создание таблиц
+    query_running_db = running_data_query
+    cursor.execute(query_running_db)
+
+    query_reward_db = reward_data_query
+    cursor.execute(query_reward_db)
+
+
+db_initialize()
 
 # подключим токен нашего бота
 bot = telebot.TeleBot(SQLfunctions.token)
