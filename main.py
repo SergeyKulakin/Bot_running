@@ -388,12 +388,12 @@ def activity_while_month(msg):
                 pass
 
     if len(places) != 0:
-        a = max(set(places), key=places.count)
+        max_place = max(set(places), key=places.count)
     else:
-        a = 'Нет мест'
+        max_place = 'Нет мест'
     bot.send_message(msg.chat.id, 'Расстояние: {} км'.format(distance))
     bot.send_message(msg.chat.id, 'Время: {} минут'.format(time))
-    bot.send_message(msg.chat.id, 'Самое часто посещаемое место: {}'.format(a))
+    bot.send_message(msg.chat.id, 'Самое часто посещаемое место: {}'.format(max_place))
     send_keyboard(msg, "Чем еще могу помочь?")
 
 # програмка на вход получает количество месяцев, а дальше смотрит на разницу по датам и подбирает все пробежки
