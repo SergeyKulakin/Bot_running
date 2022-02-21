@@ -364,6 +364,16 @@ def deleteAllRewardData(msg):
     else:
         send_keyboard(msg, "Ок, ничего не удаляем. Чем еще могу помочь?")
 
+def add_running(j, info_running, distance, time, places):
+    info = str(j).split(',')
+    date = info[3].replace(' ','').split('.')
+    now = datetime.datetime.now().strftime('%y-%m-%d')
+    bd = datetime.date(int(date[2]),int(date[1]),int(date[0])).strftime('%y-%m-%d')
+    if (datetime.datetime.strptime(now,'%y-%m-%d') - datetime.datetime.strptime(bd,'%y-%m-%d')).days <= 30:
+        distance += float(str(info_running).split(',')[0].split()[0].lstrip('(').lstrip("'"))
+        time += int(str(info_running).split(',')[1].split()[0].lstrip('(').lstrip("'"))
+        places.append(str(info[2]))
+
 
 # функция создания сводки
 def activity_while_month(msg):
@@ -374,14 +384,7 @@ def activity_while_month(msg):
     for i in runsList:
         for j in i:
             try:
-                info = str(j).split(',')
-                date = info[3].replace(' ','').split('.')
-                now = datetime.datetime.now().strftime('%y-%m-%d')
-                bd = datetime.date(int(date[2]),int(date[1]),int(date[0])).strftime('%y-%m-%d')
-                if (datetime.datetime.strptime(now,'%y-%m-%d') - datetime.datetime.strptime(bd,'%y-%m-%d')).days <= 30:
-                    distance += float(str(i).split(',')[0].split()[0].lstrip('(').lstrip("'"))
-                    time += int(str(i).split(',')[1].split()[0].lstrip('(').lstrip("'"))
-                    places.append(str(info[2]))
+                add_running(j, i, distance, time, places)
             except:
                 # bot.send_message(msg.chat.id, "Следующая пробежка не удовлетворяет требованиям к формату, поэтому не будет учтена")
                 # bot.send_message(msg.chat.id, i)
