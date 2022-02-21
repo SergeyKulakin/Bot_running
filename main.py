@@ -6,6 +6,7 @@ import io #для работы с битовыми данными в памят�
 import docx # для работы с Word
 import datetime # для работы с временем
 import SQLfunctions # подключаем sqlite функции
+import stickers     # подключаем файл с стикерами
 from PIL import Image, ImageDraw, ImageFont # библиотека по работе с изображениями, добавление текста, шрифты
 
 
@@ -191,7 +192,7 @@ def import_run(msg):
                      bot.send_message(msg.chat.id, doc_str)
 
             else: #если расширение другое, бот отправит стикер sorry
-                bot.send_sticker(msg.chat.id, 'CAACAgIAAxkBAAIKJGFrNvGpUtjbltZpXQNpetpU1FC6AAI_AAOtZbwUhPhHiSSyKyAhBA')
+                bot.send_sticker(msg.chat.id, stickers.sorry_sticker)
         except Exception as e:
             bot.reply_to(msg, e)
 
@@ -310,27 +311,27 @@ def reward(msg, flag_marathon, flag_half_marathon):
 
     if (flag_marathon == 1) and ("Пробежать марафон!" not in rewardList):
         bot.send_message(msg.chat.id, 'Да вы марафонец!')
-        bot.send_sticker(msg.chat.id, 'CAACAgIAAxkBAAEDG4JhbVH5kd2eiIFKEUWJ8g6jxBehlgACtQADwZxgDNJKKKDyOCUEIQQ')
+        bot.send_sticker(msg.chat.id, stickers.marathon_sticker)
         SQLfunctions.insertRewardIntoBD(msg, "Пробежать марафон!")
 
     if (flag_half_marathon == 1) and ("Пробежать полумарафон!" not in rewardList):
         bot.send_message(msg.chat.id, 'Ого, вы пробежали полумарафон!')
-        bot.send_sticker(msg.chat.id, 'CAACAgIAAxkBAAEDG4RhbVUKixP0SEOvFQQ8nIb2QDvkgAACtwADwZxgDPilirtWD6kDIQQ')
+        bot.send_sticker(msg.chat.id, stickers.half_marathon_sticker)
         SQLfunctions.insertRewardIntoBD(msg, "Пробежать полумарафон!")
 
     if (summdistance > 0 and "Начало положено!" not in rewardList):
         bot.send_message(msg.chat.id, 'Ваша первая пробежка, круто!')
-        bot.send_sticker(msg.chat.id, 'CAACAgIAAxkBAAEDEl1hZzjsZ1hhdMvFXy5uI4Twg_THfwACxAADMNSdEcjFvLwK6xVKIQQ')
+        bot.send_sticker(msg.chat.id, stickers.beginning_sticker)
         SQLfunctions.insertRewardIntoBD(msg, "Начало положено!")
 
     if (summdistance >= 100 and "Преодолеть отметку в 100 км!" not in rewardList):
         bot.send_message(msg.chat.id, f'Вау, вы преодолели отметку в 100 км! Так держать!')
-        bot.send_sticker(msg.chat.id, 'CAACAgIAAxkBAAEDFKBhaFqay25yDk89nZ53k2qPmwLMOAACywADMNSdEXWK5xlwcXbPIQQ')
+        bot.send_sticker(msg.chat.id, stickers.more_than_100_sticker)
         SQLfunctions.insertRewardIntoBD(msg, "Преодолеть отметку в 100 км!")
 
     if (summdistance >= 200 and "Преодолеть отметку в 200 км!" not in rewardList):
         bot.send_message(msg.chat.id, 'Вау, вы преодолели отметку в 200 км! Очень круто!')
-        bot.send_sticker(msg.chat.id, 'CAACAgIAAxkBAAEDG5xhbWhoD5PCuVHwuXIfomPf1-7XrgACzAADMNSdEbg0CDIOCTHMIQQ')
+        bot.send_sticker(msg.chat.id, stickers.more_than_200_sticker)
         SQLfunctions.insertRewardIntoBD(msg, "Преодолеть отметку в 200 км!")
 
 # функция, которая выводит список всех полученных наград
@@ -484,7 +485,7 @@ def callback_worker(call):
             showRewards(call)
         except:
             bot.send_message(call.chat.id, 'У вас пока нет наград :(')
-            bot.send_sticker(call.chat.id, 'CAACAgIAAxkBAAEDFKRhaGPl0VAFJ14oaW1t7nnHVPEw8wACdQADwDZPE5B0WbJxOIvjIQQ')
+            bot.send_sticker(call.chat.id, stickers.sad_sticker)
             send_keyboard(call, "Чем еще могу помочь?")
 
     elif call.text == 'Показать активность за месяц':
