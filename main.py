@@ -7,6 +7,7 @@ import docx # для работы с Word
 import datetime # для работы с временем
 import SQLfunctions # подключаем sqlite функции
 import stickers     # подключаем файл с стикерами
+import notifications
 from PIL import Image, ImageDraw, ImageFont # библиотека по работе с изображениями, добавление текста, шрифты
 
 
@@ -32,19 +33,9 @@ db_initialize()
 # подключим токен нашего бота
 bot = telebot.TeleBot(SQLfunctions.token)
 
-bot_greeting =  str('Привет, я HSE_Running Bot! Твой персональный помощник для учета пробежек! \n'
-                    'Записывай пробежки в формате:\n'
-                    'Дистанция (км), Время (мин), Локация, Дата (дд.мм.гггг)\n\n'
-                    'Пример:\n2 км, 10 мин, Москва, 12.10.2021 \n\n'
-                    'Ты также можешь записать в пробежку только дистанцию и время пробежки.\n\n'
-                    'Пример:\n2 км, 10 мин\n'
-                    'Но в таком случае я не смогу учесть такие пробежки при показе активности за последний месяц или '
-                    'при показе пробежек за определенный период.\n\n'
-                    'Если у тебя уже есть записи пробежек в файлах, можешь загрузить их сюда выбрав пункт "Импорт записей"')
-
 # напишем, что делать нашему боту при команде старт
 @bot.message_handler(commands=['start'])
-def send_keyboard(message, text=bot_greeting):
+def send_keyboard(message, text=notifications.bot_greeting):
     keyboard = types.ReplyKeyboardMarkup(row_width=1)
     lst_of_btns = ['Добавить пробежку', 'Удалить пробежку', 'Показать все пробежки', 'Показать пробежки за период',
                    'Показать активность за месяц', 'Импорт записей', 'Награды', 'Пока все!', 'Очистить runningData',
@@ -287,27 +278,13 @@ def reward(msg, flag_marathon, flag_half_marathon):
 
     summdistance = 0  # переменная, в которую будем записывать суммарное расстояние, которое уже пробежал пользователь
     for val in runsList:
-        # try:
         if ',' in str(val).rstrip(')').rstrip(','):
-            summdistance += float(str(val).split(',')[0].split()[0].lstrip('(').lstrip("'"))
+            summdistance += float(str(val).split(',')[0].split()[0])#.lstrip('(').lstrip("'"))
         else:
-            bot.send_message(msg.chat.id, "================\n"
-                                              "УВЕДОМЛЕНИЕ\n"
-                                              "* Вы вашем списке пробежек есть пробежка в нерекомендуемом формате!\n"
-                                              "* Пробежка в нерекомендуемом формате не влияет на работу бота, однако данные из данной"
-                                              " пробежки никак не будут учтены\n"
-                                              "* Рекомендуется удалить данную пробежку:\n")
+            bot.send_message(msg.chat.id, notifications.wrong_format)
             bot.send_message(msg.chat.id, val)
             bot.send_message(msg.chat.id, "================")
-        # except:
-        #     bot.send_message(msg.chat.id, "================\n"
-        #                                   "УВЕДОМЛЕНИЕ\n"
-        #                                   "* Вы вашем списке пробежек есть пробежка в нерекомендуемом формате!\n"
-        #                                   "* Пробежка в нерекомендуемом формате не влияет на работу бота, однако данные из данной"
-        #                                   " пробежки никак не будут учтены\n"
-        #                                   "* Рекомендуется удалить данную пробежку:\n")
-        #     bot.send_message(msg.chat.id, val)
-        #     bot.send_message(msg.chat.id, "================")
+
 
     if (flag_marathon == 1) and ("Пробежать марафон!" not in rewardList):
         bot.send_message(msg.chat.id, 'Да вы марафонец!')
@@ -446,25 +423,14 @@ def callback_worker(call):
     if call.text == "Добавить пробежку":
         markup = types.ReplyKeyboardMarkup(row_width=1)
         markup.add(types.KeyboardButton('Назад'))
-        msg = bot.send_message(call.chat.id, text='Давайте добавим пробежку! Напишите ее в чат.\n'
-                                       'Помните, что пробежку нужно записать в формате:\n'
-                                       'Дистанция (км), Время (мин), Локация, Дата (дд.мм.гггг)\n\n'
-                                       'Пример:\n2 км, 10 мин, Москва, 12.10.2021 \n\n'
-                                       'Если нажали на команду по ошибке, нажмите "Назад" на клавиатуре',
-                                        reply_markup=markup)
+        msg = bot.send_message(call.chat.id, text=notifications.add_run, reply_markup=markup)
         bot.register_next_step_handler(msg, add_run)
 
     # кнопка импорта файлов
     elif call.text == "Импорт записей":
         markup = types.ReplyKeyboardMarkup(row_width=1)
         markup.add(types.KeyboardButton('Назад'))
-        msg = bot.send_message(call.chat.id,
-                               'Давайте добавим ваши записи пробежек! Нажмите на скрепку и прикрепите файл!\n'
-                               'Я умею работать только с файлами .txt или .docx\n '
-                               'Желательно, чтобы записи пробежек были на отдельных строках и в формате:\n'
-                               'Дистанция (км), Время (мин), Локация, Дата (дд.мм.гггг)\n\n'
-                               'Если нажали на команду по ошибке, нажмите "Назад" на клавиатуре',
-                               reply_markup=markup)
+        msg = bot.send_message(call.chat.id, notifications.import_runs, reply_markup=markup)
         bot.register_next_step_handler(msg, import_run)
 
 
