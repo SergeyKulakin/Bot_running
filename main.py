@@ -224,7 +224,7 @@ def import_run(msg):
 
 # реализуем теперь функцию "Показать все пробежки"
 # для этого сначала напишем функцию get_runs_string, которая делает красивые строки и отправляет их пользователю
-def get_runs_string(runsList):
+def get_runs(runsList):
     runsList_str = []
     for val in list(enumerate(runsList)):
         runsList_str.append(str(val[0] + 1) + ') ' + val[1][0] + '\n')
@@ -232,7 +232,7 @@ def get_runs_string(runsList):
 
 # теперь отправляем пользователю список пробежек
 def showAllRuns(msg):
-    runsList = get_runs_string(SQLfunctions.selectRunsfromBD(msg))
+    runsList = get_runs(SQLfunctions.selectRunsfromBD(msg))
     bot.send_message(msg.chat.id, runsList)
     send_keyboard(msg, "Чем еще могу помочь?")
 
@@ -273,7 +273,7 @@ def deleteRun(msg1, msg):
 
 # перейдем к функции Получения, просмотра и учета наград
 # сначала добавим функцию для красивого вывода строк с наградой
-def get_reward_string(rewardList):
+def get_reward(rewardList):
     rewList_str = []
     for val in list(rewardList):
         rewList_str.append(str('"' + val[0] + '"' + '\n'))
@@ -282,7 +282,7 @@ def get_reward_string(rewardList):
 # теперь переходим к самой функции
 def reward(msg, flag_marathon, flag_half_marathon):
     runsList = SQLfunctions.selectRunsfromBD(msg)
-    rewardList = get_reward_string(SQLfunctions.selectRewardsfromBD(msg))
+    rewardList = get_reward(SQLfunctions.selectRewardsfromBD(msg))
 
     summdistance = 0  # переменная, в которую будем записывать суммарное расстояние, которое уже пробежал пользователь
     for val in runsList:
@@ -335,7 +335,7 @@ def reward(msg, flag_marathon, flag_half_marathon):
 
 # функция, которая выводит список всех полученных наград
 def showRewards(msg):
-    rewardList = get_reward_string(SQLfunctions.selectRewardsfromBD(msg))
+    rewardList = get_reward(SQLfunctions.selectRewardsfromBD(msg))
     bot.send_message(msg.chat.id, rewardList)
     send_keyboard(msg, "Чем еще могу помочь?")
 
