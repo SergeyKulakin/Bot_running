@@ -67,6 +67,7 @@ def send_keyboard(message, text=bot_greeting):
 def check_marathon_flag(dist):
     return dist==42
 
+
 def check_half_marathon_flag(dist):
     return dist==21
 
