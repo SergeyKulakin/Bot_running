@@ -5,56 +5,46 @@ import sqlite3
 import io #для работы с битовыми данными в памяти
 import docx # для работы с Word
 import datetime # для работы с временем
+import stickers     # подключаем файл с стикерами
+import notifications
 import db_connection as db # подключаем db функции
 from PIL import Image, ImageDraw, ImageFont # библиотека по работе с изображениями, добавление текста, шрифты
 
-conn = sqlite3.connect('running.db') # подключаем sqlite
 
-# курсор для работы с таблицами
-cursor = conn.cursor()
+def db_initialize():
+    conn = sqlite3.connect('running.db') # подключаем sqlite
 
-try:
-    # sql запрос на создание таблицы
-    query = "CREATE TABLE \"runningData\" (\"ID\" INTEGER UNIQUE, \"user_id\" INTEGER, \"run\" TEXT, PRIMARY KEY (\"ID\"))"
-    cursor.execute(query)
-except:
-    pass
+    # курсор для работы с таблицами
+    cursor = conn.cursor()
 
-try:
-    query1 = "CREATE TABLE \"rewardData\" (\"ID\" INTEGER UNIQUE, \"user_id\" INTEGER, \"reward\" TEXT, PRIMARY KEY (\"ID\"))"
-    cursor.execute(query1)
-except:
-    pass
+    running_data_query = "CREATE TABLE IF NOT EXISTS \"runningData\" (\"ID\" INTEGER UNIQUE, \"user_id\" INTEGER, \"run\" TEXT, PRIMARY KEY (\"ID\"))"
+    reward_data_query  = "CREATE TABLE IF NOT EXISTS \"rewardData\" (\"ID\" INTEGER UNIQUE, \"user_id\" INTEGER, \"reward\" TEXT, PRIMARY KEY (\"ID\"))"
 
+    # sql запрос на создание таблиц
+    query_running_db = running_data_query
+    cursor.execute(query_running_db)
+
+    query_reward_db = reward_data_query
+    cursor.execute(query_reward_db)
+
+
+db_initialize()
 
 # подключим токен нашего бота
 bot = telebot.TeleBot(db.token)
 
 # напишем, что делать нашему боту при команде старт
 @bot.message_handler(commands=['start'])
-def send_keyboard(message, text="Привет, я HSE_Running Bot! Твой персональный помощник для учета пробежек! \n"
-                                "Записывай пробежки в формате:\n"
-                                'Дистанция (км), Время (мин), Локация, Дата (дд.мм.гггг)\n\n'
-                                'Пример:\n2 км, 10 мин, Москва, 12.10.2021 \n\n'
-                                'Ты также можешь записать в пробежку только дистанцию и время пробежки.\n\n'
-                                'Пример:\n2 км, 10 мин\n'
-                                'Но в таком случае я не смогу учесть такие пробежки при показе активности за последний месяц или '
-                                'при показе пробежек за определенный период.\n\n'
-                                "Если у тебя уже есть записи пробежек в файлах, можешь загрузить их сюда выбрав 'Импорт записей'"):
-    keyboard = types.ReplyKeyboardMarkup(row_width=2)
-    itembtn1 = types.KeyboardButton('Добавить пробежку')
-    itembtn2 = types.KeyboardButton('Удалить пробежку')
-    itembtn3 = types.KeyboardButton('Показать все пробежки')
-    itembtn4 = types.KeyboardButton('Показать пробежки за период')
-    itembtn5 = types.KeyboardButton('Показать активность за месяц')
-    itembtn6 = types.KeyboardButton('Импорт записей')  # загрузить записи из файла
-    itembtn7 = types.KeyboardButton('Награды')
-    itembtn8 = types.KeyboardButton('Пока все!')
-    itembtn9 = types.KeyboardButton('Очистить runningData')
-    itembtn10 = types.KeyboardButton('Очистить rewardData')
+def send_keyboard(message, text=notifications.bot_greeting):
+    keyboard = types.ReplyKeyboardMarkup(row_width=1)
+    lst_of_btns = ['Добавить пробежку', 'Удалить пробежку', 'Показать все пробежки', 'Показать пробежки за период',
+                   'Показать активность за месяц', 'Импорт записей', 'Награды', 'Пока все!', 'Очистить runningData',
+                   'Очистить rewardData']
 
-    # keyboard.add(itembtn1, itembtn2, itembtn3, itembtn4, itembtn5, itembtn6, itembtn7, itembtn8, itembtn9, itembtn10)
-    keyboard.add(itembtn1, itembtn2, itembtn6, itembtn3, itembtn4, itembtn5, itembtn7, itembtn8, itembtn9, itembtn10)
+    for btn_name in lst_of_btns:
+        new_button = types.KeyboardButton(btn_name)
+        keyboard.add(new_button)
+
     # пришлем это все сообщением и запишем выбранный вариант
     msg = bot.send_message(message.from_user.id, text=text, reply_markup=keyboard)
 
@@ -65,6 +55,13 @@ def send_keyboard(message, text="Привет, я HSE_Running Bot! Твой пе
 
 #--------------------------------
 # Теперь напишем функции для нашего бота
+
+def check_marathon_flag(dist):
+    return dist==42
+
+
+def check_half_marathon_flag(dist):
+    return dist==21
 
 # функция "Добавить пробежку"
 def add_run(msg):
@@ -102,7 +99,16 @@ def add_run_repit_part(msg, text):
     flag_except = True
     flag_else = True
     try:
-        cur_dist = float(str(text).split(',')[0].split()[0].lstrip('(').lstrip("'"))
+        # пробежка поступает в формате строки: "12 км, 44 минуты, Москва, 12.11.2020"
+        # необходимо достать оттуда числовое значение дистанции пробежки
+        # сначала достанем дистанцию в формате "12 км"
+        run_dist_in_str_format = str(msg.text).split(',')[0]
+
+        # теперь надо достать оттуда число
+        digit_in_str_format = run_dist_in_str_format.split()[0]
+
+        # переведем дистанцию в числовой формат
+        cur_dist = float(digit_in_str_format)
         if cur_dist >= 0:
             if ',' in str(text).rstrip(')').rstrip(','):
                 if cur_dist >= 42:
@@ -202,9 +208,7 @@ def import_run(msg):
                      bot.send_message(msg.chat.id, doc_str)
 
             else: #если расширение другое, бот отправит стикер sorry
-                bot.send_sticker(msg.chat.id, 'CAACAgIAAxkBAAIKJGFrNvGpUtjbltZpXQNpetpU1FC6AAI_AAOtZbwUhPhHiSSyKyAhBA')
-                return send_keyboard(msg, "Не могу прочесть. Чем еще могу помочь?")
-
+                bot.send_sticker(msg.chat.id, stickers.sorry_sticker)
         except Exception as e:
             return send_keyboard(msg, "Не могу прочесть. Чем еще могу помочь?")
 
@@ -237,9 +241,8 @@ def import_add_to_db(msg, text):
         send_keyboard(msg, "Чем еще могу помочь?")
 
 
-'''реализуем теперь функцию "Показать все пробежки"
-    для этого сначала напишем функцию get_runs_string,
-    которая делает красивые строки и отправляет их пользователю'''
+# реализуем теперь функцию "Показать все пробежки"
+# для этого сначала напишем функцию get_runs_string, которая делает красивые строки и отправляет их пользователю
 def get_runs_string(runs_list):
     runs_list_str = []
     for val in list(enumerate(runs_list)):
@@ -304,49 +307,36 @@ def reward(msg, flag_marathon, flag_half_marathon):
     for val in runs_list:
         # try:
         if ',' in str(val).rstrip(')').rstrip(','):
-            summdistance += float(str(val).split(',')[0].split()[0].lstrip('(').lstrip("'"))
+            summdistance += float(str(val).split(',')[0].split()[0])#.lstrip('(').lstrip("'"))
         else:
-            bot.send_message(msg.chat.id, "================\n"
-                                              "УВЕДОМЛЕНИЕ\n"
-                                              "* В вашем списке пробежек есть пробежка в нерекомендуемом формате!\n"
-                                              "* Пробежка в нерекомендуемом формате не влияет на работу бота, однако данные из данной"
-                                              " пробежки никак не будут учтены\n"
-                                              "* Рекомендуется удалить данную пробежку:\n")
+            bot.send_message(msg.chat.id, notifications.wrong_format)
             bot.send_message(msg.chat.id, val)
             bot.send_message(msg.chat.id, "================")
-        # except:
-        #     bot.send_message(msg.chat.id, "================\n"
-        #                                   "УВЕДОМЛЕНИЕ\n"
-        #                                   "* Вы вашем списке пробежек есть пробежка в нерекомендуемом формате!\n"
-        #                                   "* Пробежка в нерекомендуемом формате не влияет на работу бота, однако данные из данной"
-        #                                   " пробежки никак не будут учтены\n"
-        #                                   "* Рекомендуется удалить данную пробежку:\n")
-        #     bot.send_message(msg.chat.id, val)
-        #     bot.send_message(msg.chat.id, "================")
+
 
     if (flag_marathon == 1) and ("Пробежать марафон!" not in reward_list):
         bot.send_message(msg.chat.id, 'Да вы марафонец!')
-        bot.send_sticker(msg.chat.id, 'CAACAgIAAxkBAAEDG4JhbVH5kd2eiIFKEUWJ8g6jxBehlgACtQADwZxgDNJKKKDyOCUEIQQ')
+        bot.send_sticker(msg.chat.id, stickers.marathon_sticker)
         db.insert_reward_into_db(msg, "Пробежать марафон!")
 
     if (flag_half_marathon == 1) and ("Пробежать полумарафон!" not in reward_list):
         bot.send_message(msg.chat.id, 'Ого, вы пробежали полумарафон!')
-        bot.send_sticker(msg.chat.id, 'CAACAgIAAxkBAAEDG4RhbVUKixP0SEOvFQQ8nIb2QDvkgAACtwADwZxgDPilirtWD6kDIQQ')
+        bot.send_sticker(msg.chat.id, stickers.half_marathon_sticker)
         db.insert_reward_into_db(msg, "Пробежать полумарафон!")
 
     if (summdistance > 0 and "Начало положено!" not in reward_list):
         bot.send_message(msg.chat.id, 'Ваша первая пробежка, круто!')
-        bot.send_sticker(msg.chat.id, 'CAACAgIAAxkBAAEDEl1hZzjsZ1hhdMvFXy5uI4Twg_THfwACxAADMNSdEcjFvLwK6xVKIQQ')
+        bot.send_sticker(msg.chat.id, stickers.beginning_sticker)
         db.insert_reward_into_db(msg, "Начало положено!")
 
     if (summdistance >= 100 and "Преодолеть отметку в 100 км!" not in reward_list):
         bot.send_message(msg.chat.id, f'Вау, вы преодолели отметку в 100 км! Так держать!')
-        bot.send_sticker(msg.chat.id, 'CAACAgIAAxkBAAEDFKBhaFqay25yDk89nZ53k2qPmwLMOAACywADMNSdEXWK5xlwcXbPIQQ')
+        bot.send_sticker(msg.chat.id, stickers.more_than_100_sticker)
         db.insert_reward_into_db(msg, "Преодолеть отметку в 100 км!")
 
     if (summdistance >= 200 and "Преодолеть отметку в 200 км!" not in reward_list):
         bot.send_message(msg.chat.id, 'Вау, вы преодолели отметку в 200 км! Очень круто!')
-        bot.send_sticker(msg.chat.id, 'CAACAgIAAxkBAAEDG5xhbWhoD5PCuVHwuXIfomPf1-7XrgACzAADMNSdEbg0CDIOCTHMIQQ')
+        bot.send_sticker(msg.chat.id, stickers.more_than_200_sticker)
         db.insert_reward_into_db(msg, "Преодолеть отметку в 200 км!")
 
 # функция, которая выводит список всех полученных наград
@@ -461,25 +451,14 @@ def callback_worker(call):
     if call.text == "Добавить пробежку":
         markup = types.ReplyKeyboardMarkup(row_width=1)
         markup.add(types.KeyboardButton('Назад'))
-        msg = bot.send_message(call.chat.id, text='Давайте добавим пробежку! Напишите ее в чат.\n'
-                                       'Помните, что пробежку нужно записать в формате:\n'
-                                       'Дистанция (км), Время (мин), Локация, Дата (дд.мм.гггг)\n\n'
-                                       'Пример:\n2 км, 10 мин, Москва, 12.10.2021 \n\n'
-                                       'Если нажали на команду по ошибке, нажмите "Назад" на клавиатуре',
-                                        reply_markup=markup)
+        msg = bot.send_message(call.chat.id, text=notifications.add_run, reply_markup=markup)
         bot.register_next_step_handler(msg, add_run)
 
     # кнопка импорта файлов
     elif call.text == "Импорт записей":
         markup = types.ReplyKeyboardMarkup(row_width=1)
         markup.add(types.KeyboardButton('Назад'))
-        msg = bot.send_message(call.chat.id,
-                               'Давайте добавим ваши записи пробежек! Нажмите на скрепку и прикрепите файл!\n'
-                               'Я умею работать только с файлами .txt или .docx\n '
-                               'Желательно, чтобы записи пробежек были на отдельных строках и в формате:\n'
-                               'Дистанция (км), Время (мин), Локация, Дата (дд.мм.гггг)\n\n'
-                               'Если нажали на команду по ошибке, нажмите "Назад" на клавиатуре',
-                               reply_markup=markup)
+        msg = bot.send_message(call.chat.id, notifications.import_runs, reply_markup=markup)
         bot.register_next_step_handler(msg, import_run)
 
 
@@ -500,7 +479,7 @@ def callback_worker(call):
             show_rewards(call)
         except:
             bot.send_message(call.chat.id, 'У вас пока нет наград :(')
-            bot.send_sticker(call.chat.id, 'CAACAgIAAxkBAAEDFKRhaGPl0VAFJ14oaW1t7nnHVPEw8wACdQADwDZPE5B0WbJxOIvjIQQ')
+            bot.send_sticker(call.chat.id, stickers.sad_sticker)
             send_keyboard(call, "Чем еще могу помочь?")
 
     elif call.text == 'Показать активность за месяц':
